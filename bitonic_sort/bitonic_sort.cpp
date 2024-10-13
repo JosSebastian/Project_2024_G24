@@ -141,17 +141,17 @@ int main(int argc, char* argv[]) {
     adiak::value("group_num", 47);
     adiak::value("implementation_source", "handwritten");
 
-    auto data = std::vector<int>();
+    auto local_data = std::vector<int>();
 
     // Initialize data across all tasks
     CALI_MARK_BEGIN(data_init_local);
-    data_init(taskid, numtasks, n_each, data, sort_type);
+    data_init(taskid, numtasks, n_each, local_data, sort_type);
     CALI_MARK_END(data_init_local);
 
     // Sort data locally and calculate log_numtasks
     CALI_MARK_BEGIN(comp);
     CALI_MARK_BEGIN(comp_large);
-    std::sort(data.begin(), data.end());
+    std::sort(local_data.begin(), local_data.end());
     CALI_MARK_END(comp_large);
 
     CALI_MARK_BEGIN(comp_small);
@@ -162,6 +162,59 @@ int main(int argc, char* argv[]) {
     for (int s = 0; s < log_numtasks; ++s) {
         for (int t = s; t >= 0; --t) {
             // Determine partner
+            const auto partner_task = taskid ^ (1 << t);
+
+            // Determine direction based on bit at s + 1 in taskid
+            const auto direction = ((taskid >> (s + 1)) % 2 ==0) ? UP : DOWN;
+
+            // Data exchange with partner
+            auto partner_data = std::vector<int>(n_each);
+            if (taskid > partner_task) {
+                MPI_Send(local_data.data(), n_each, MPI_INT, partner_task, 0, MPI_COMM_WORLD);
+                MPI_Recv(partner_data.data(), n_each, MPI_INT, partner_task, 0, MPI_COMM_WORLD, &status);
+            } else {
+                MPI_Recv(partner_data.data(), n_each, MPI_INT, partner_task, 0, MPI_COMM_WORLD, &status);
+                MPI_Send(local_data.data(), n_each, MPI_INT, partner_task, 0, MPI_COMM_WORLD);
+            }
+
+            // Combine data with partner
+            auto merged_data = std::vector<int>(n_each * 2);
+            std::merge(local_data.begin(), local_data.end(), partner_data.begin(), partner_data.end(), merged_data.begin());
+
+            // Split data with partner
+            if (direction == UP && taskid < partner_task || direction == DOWN && taskid > partner_task) {
+                std::copy(merged_data.begin(), merged_data.begin() + n_each - 1, local_data.begin());
+            } else {
+                std::copy(merged_data.begin() + n_each, merged_data.end(), local_data.begin());
+            }
+        }
+    }
+
+    // Correctness check
+    // Ensure data is sorted locally
+    int last;
+    for (int i = 0; i < local_data.size(); ++i) {
+        if (i == 0) {
+            last = local_data.at(i);
+        } else {
+            if (last > local_data.at(i)) {
+                std::cout << "Correctness check failed!" << std::endl;
+                return 1;
+            }
+        }
+    }
+
+    // Ensure our data is less than our neighbors
+    int neighbor_start;
+    for (int i = numtasks - 1; i >= 0; --i) {
+        if (taskid == i) {
+            MPI_Send(local_data.data(), 1, MPI_INT, i - 1, 0, MPI_COMM_WORLD);
+        } else if (taskid == i - 1) {
+            MPI_Recv(&neighbor_start, 1, MPI_INT, i + 1, 0, MPI_COMM_WORLD, &status);
+            if (neighbor_start < local_data.at(local_data.size() - 1)) {
+                std::cout << "Correctness check failed!" << std::endl;
+                return 1;
+            }
         }
     }
 
