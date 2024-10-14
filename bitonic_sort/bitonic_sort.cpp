@@ -142,75 +142,70 @@ int main(int argc, char* argv[]) {
     data_init(taskid, numtasks, n_each, local_data, sort_type);
     CALI_MARK_END(data_init_local);
 
-    // Sort data locally and calculate log_numtasks
+    // Sort data locally
     CALI_MARK_BEGIN(comp);
     CALI_MARK_BEGIN(comp_large);
     std::sort(local_data.begin(), local_data.end());
     CALI_MARK_END(comp_large);
-
-    CALI_MARK_BEGIN(comp_small);
-    const auto log_numtasks = static_cast<int>(log2(numtasks));
-    CALI_MARK_END(comp_small);
     CALI_MARK_END(comp);
 
-    for (int s = 0; s < log_numtasks; ++s) {
-        for (int t = s; t >= 0; --t) {
+    for (int s = 2; s <= numtasks; s <<= 1) {
+        for (int t = s >> 1; t > 0; t >>= 1) {
             // Determine partner
-            const auto partner_task = taskid ^ (1 << t);
+            auto partner_task = taskid ^ t;
 
-            // Determine direction based on bit at s in taskid
-            const auto direction = ((taskid >> s) % 2 == 0) ? UP : DOWN;
+            if (partner_task < numtasks) {
+                // Determine direction based on bit at s in taskid
+                const auto direction = ((taskid & s) == 0) ? UP : DOWN;
 
-            // Data exchange with partner
-            auto partner_data = std::vector<int>(n_each);
-            if (taskid > partner_task) {
-                MPI_Send(local_data.data(), n_each, MPI_INT, partner_task, 0, MPI_COMM_WORLD);
-                MPI_Recv(partner_data.data(), n_each, MPI_INT, partner_task, 0, MPI_COMM_WORLD, &status);
-            } else {
-                MPI_Recv(partner_data.data(), n_each, MPI_INT, partner_task, 0, MPI_COMM_WORLD, &status);
-                MPI_Send(local_data.data(), n_each, MPI_INT, partner_task, 0, MPI_COMM_WORLD);
+                // Data exchange with partner
+                auto partner_data = std::vector<int>(n_each);
+                if (taskid < partner_task) {
+                    MPI_Send(local_data.data(), n_each, MPI_INT, partner_task, 0, MPI_COMM_WORLD);
+                    MPI_Recv(partner_data.data(), n_each, MPI_INT, partner_task, 0, MPI_COMM_WORLD, &status);
+                } else {
+                    MPI_Recv(partner_data.data(), n_each, MPI_INT, partner_task, 0, MPI_COMM_WORLD, &status);
+                    MPI_Send(local_data.data(), n_each, MPI_INT, partner_task, 0, MPI_COMM_WORLD);
+                }
+
+                // Combine data with partner
+                auto merged_data = std::vector<int>(n_each * 2);
+                std::merge(local_data.begin(), local_data.end(), partner_data.begin(), partner_data.end(), merged_data.begin());
+
+                // Split data with partner
+                if ((direction == UP && taskid < partner_task) || (direction == DOWN && taskid > partner_task)) {
+                    std::copy(merged_data.begin(), merged_data.begin() + n_each, local_data.begin());
+                } else {
+                    std::copy(merged_data.begin() + n_each, merged_data.end(), local_data.begin());
+                }
             }
-
-            // Combine data with partner
-            auto merged_data = std::vector<int>(n_each * 2);
-            std::merge(local_data.begin(), local_data.end(), partner_data.begin(), partner_data.end(), merged_data.begin());
-
-            // Split data with partner
-            if (direction == UP && taskid < partner_task || direction == DOWN && taskid > partner_task) {
-                std::copy(merged_data.begin(), merged_data.begin() + n_each, local_data.begin());
-            } else {
-                std::copy(merged_data.begin() + n_each, merged_data.end(), local_data.begin());
-            }
+            MPI_Barrier(MPI_COMM_WORLD);
         }
     }
 
+    // Print local data (debugging)
     std::stringstream ss;
     bool first = true;
-    for (int i : local_data)
-    {
+    for (int i : local_data) {
         if (!first)
             ss << ", ";
         ss << i;
         first = false;
     }
 
-    std::cout << taskid << " Data: " << ss.str() << std::endl;
+    std::cout << "Task " << taskid << " Data: " << ss.str() << std::endl;
 
     // Correctness check
     // Ensure data is sorted locally
-    int last;
-    for (int i = 0; i < local_data.size(); ++i) {
-        if (i == 0) {
-            last = local_data.at(i);
-        } else {
-            if (last > local_data.at(i)) {
-                std::cout << "Correctness check failed!" << std::endl;
-                return 1;
-            }
+    for (size_t i = 1; i < local_data.size(); ++i) {
+        if (local_data[i - 1] > local_data[i]) {
+            std::cout << "Task " << taskid << " local data is not sorted!" << std::endl;
+            MPI_Finalize();
+            return 1;
         }
     }
 
-    // Ensure our data is less than our neighbors
+    // Ensure order across tasks
     if (taskid < numtasks - 1) {
         // Send our last element to the next task
         MPI_Send(&local_data[n_each - 1], 1, MPI_INT, taskid + 1, 0, MPI_COMM_WORLD);
@@ -221,11 +216,12 @@ int main(int argc, char* argv[]) {
         // Receive the last element from the previous task
         MPI_Recv(&neighbor_last, 1, MPI_INT, taskid - 1, 0, MPI_COMM_WORLD, &status);
         if (neighbor_last > local_data[0]) {
-            std::cout << "Correctness check failed!" << std::endl;
+            std::cout << "Task " << taskid << " data is not in global order!" << std::endl;
+            MPI_Finalize();
             return 1;
         }
     }
 
+    MPI_Finalize();
     return 0;
 }
-
