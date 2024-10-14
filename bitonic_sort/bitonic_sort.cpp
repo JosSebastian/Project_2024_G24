@@ -140,7 +140,7 @@ int main(int argc, char* argv[]) {
     adiak::value("input_type", sort_type_str);
     adiak::value("num_procs", numtasks);
     adiak::value("scalability", "strong");
-    adiak::value("group_num", 47);
+    adiak::value("group_num", 24);
     adiak::value("implementation_source", "handwritten");
 
     auto local_data = std::vector<int>();
