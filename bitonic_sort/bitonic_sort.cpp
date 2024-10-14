@@ -3,6 +3,7 @@
 #include <vector>
 #include <numeric>
 #include <cmath>
+#include <sstream>
 
 #include "mpi.h"
 #include <caliper/cali.h>
@@ -94,21 +95,14 @@ int main(int argc, char* argv[]) {
     }
 
     sort_type sort_type = sorted;
-    switch (sort_type_str) {
-        case "Sorted":
-            sort_type = sorted;
-            break;
-        case "Random":
-            sort_type = ran;
-            break;
-        case "1_perc_perturbed":
-            sort_type = one_percent;
-            break;
-        case "ReverseSorted":
-            sort_type = reverse;
-            break;
-        default:
-            sort_type = sorted;
+    if (sort_type_str == "Sorted") {
+        sort_type = sorted;
+    } else if (sort_type_str == "Random") {
+        sort_type = ran;
+    } else if (sort_type_str == "1_perc_perturbed") {
+        sort_type = one_percent;
+    } else if (sort_type_str == "ReverseSorted") {
+        sort_type = reverse;
     }
 
     int numtasks, /* number of tasks in partition */
@@ -164,8 +158,8 @@ int main(int argc, char* argv[]) {
             // Determine partner
             const auto partner_task = taskid ^ (1 << t);
 
-            // Determine direction based on bit at s + 1 in taskid
-            const auto direction = ((taskid >> (s + 1)) % 2 ==0) ? UP : DOWN;
+            // Determine direction based on bit at s in taskid
+            const auto direction = ((taskid >> s) % 2 == 0) ? UP : DOWN;
 
             // Data exchange with partner
             auto partner_data = std::vector<int>(n_each);
@@ -183,12 +177,24 @@ int main(int argc, char* argv[]) {
 
             // Split data with partner
             if (direction == UP && taskid < partner_task || direction == DOWN && taskid > partner_task) {
-                std::copy(merged_data.begin(), merged_data.begin() + n_each - 1, local_data.begin());
+                std::copy(merged_data.begin(), merged_data.begin() + n_each, local_data.begin());
             } else {
                 std::copy(merged_data.begin() + n_each, merged_data.end(), local_data.begin());
             }
         }
     }
+
+    std::stringstream ss;
+    bool first = true;
+    for (int i : local_data)
+    {
+        if (!first)
+            ss << ", ";
+        ss << i;
+        first = false;
+    }
+
+    std::cout << taskid << " Data: " << ss.str() << std::endl;
 
     // Correctness check
     // Ensure data is sorted locally
@@ -205,16 +211,18 @@ int main(int argc, char* argv[]) {
     }
 
     // Ensure our data is less than our neighbors
-    int neighbor_start;
-    for (int i = numtasks - 1; i >= 0; --i) {
-        if (taskid == i) {
-            MPI_Send(local_data.data(), 1, MPI_INT, i - 1, 0, MPI_COMM_WORLD);
-        } else if (taskid == i - 1) {
-            MPI_Recv(&neighbor_start, 1, MPI_INT, i + 1, 0, MPI_COMM_WORLD, &status);
-            if (neighbor_start < local_data.at(local_data.size() - 1)) {
-                std::cout << "Correctness check failed!" << std::endl;
-                return 1;
-            }
+    if (taskid < numtasks - 1) {
+        // Send our last element to the next task
+        MPI_Send(&local_data[n_each - 1], 1, MPI_INT, taskid + 1, 0, MPI_COMM_WORLD);
+    }
+
+    if (taskid > 0) {
+        int neighbor_last;
+        // Receive the last element from the previous task
+        MPI_Recv(&neighbor_last, 1, MPI_INT, taskid - 1, 0, MPI_COMM_WORLD, &status);
+        if (neighbor_last > local_data[0]) {
+            std::cout << "Correctness check failed!" << std::endl;
+            return 1;
         }
     }
 
