@@ -35,7 +35,7 @@ void data_init(const int taskid, const int numtasks, const int n_each, std::vect
     if (sort_type == sorted) {
         std::iota(data.begin(), data.end(), taskid * n_each);
     } else if (sort_type == reverse) {
-        std::iota(data.begin(), data.end(), (numtasks - taskid) * n_each);
+        std::iota(data.begin(), data.end(), (numtasks - taskid - 1) * n_each);
         std::reverse(data.begin(), data.end());
     } else if (sort_type == ran) {
         std::random_device rd;
@@ -44,10 +44,13 @@ void data_init(const int taskid, const int numtasks, const int n_each, std::vect
 
         std::generate(data.begin(), data.end(), [&]() { return dist(gen); });
     } else if (sort_type == one_percent) {
+        // Initialize data as sorted
         std::iota(data.begin(), data.end(), taskid * n_each);
 
         int perturb_count = static_cast<int>(n_each * 0.01);
+        if (perturb_count == 0) perturb_count = 1; // Ensure at least one element is perturbed
 
+        // Randomly perturb 1% of the data
         std::random_device rd;
         std::mt19937 gen(rd());
         std::uniform_int_distribution<> index_dist(0, n_each - 1);
@@ -58,25 +61,33 @@ void data_init(const int taskid, const int numtasks, const int n_each, std::vect
             data[idx] = value_dist(gen);
         }
 
-        std::uniform_int_distribution<> task_dist(0, numtasks - 1);
-        int partner_task = task_dist(gen);
-
-        while (partner_task == taskid) {
-            partner_task = task_dist(gen);
+        // Determine partner task in a symmetric way
+        int partner_task;
+        if (numtasks % 2 == 0) {
+            // For even number of tasks, pair taskid with taskid ^ 1
+            partner_task = taskid ^ 1;
+        } else {
+            // For odd number of tasks, pair taskid with (taskid + 1) % numtasks
+            partner_task = (taskid + 1) % numtasks;
         }
 
-        std::vector<int> recv_data(perturb_count);
+        // Ensure partner_task is within bounds
+        if (partner_task >= numtasks) {
+            partner_task = taskid; // No partner; skip exchange
+        }
 
-        CALI_MARK_BEGIN(comm);
-        CALI_MARK_BEGIN(comm_small);
-        MPI_Sendrecv(&data[0], perturb_count, MPI_INT, partner_task, 0,
-                     &recv_data[0], perturb_count, MPI_INT, partner_task, 0,
-                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        CALI_MARK_END(comm_small);
-        CALI_MARK_END(comm);
+        if (partner_task != taskid) {
+            std::vector<int> recv_data(perturb_count);
 
-        for (int i = 0; i < perturb_count; ++i) {
-            data[i] = recv_data[i];
+            // Exchange data with partner
+            MPI_Sendrecv(&data[0], perturb_count, MPI_INT, partner_task, 0,
+                         &recv_data[0], perturb_count, MPI_INT, partner_task, 0,
+                         MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+            // Replace first perturb_count elements with received data
+            for (int i = 0; i < perturb_count; ++i) {
+                data[i] = recv_data[i];
+            }
         }
     }
 }
