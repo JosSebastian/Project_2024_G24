@@ -18,17 +18,15 @@ using std::string;
 
 #include <mpi.h>
 
+#include <caliper/cali.h>
+#include <caliper/cali-manager.h>
+
+#include <adiak.hpp>
+
 #define MASTER 0
 
-void Start(int process, int processes, int size, int type, int &subsize, int &subtype, vector<int> &subarray)
+void Start(int process, int processes, int size, int type, int &subsize, int &subtype, vector<int> &subarray, bool &sorted)
 {
-    if (process == MASTER)
-        cout << "Sample Sort: "
-             << "Size" << "(" << size << ")"
-             << " - "
-             << "Type" << "(" << type << ")"
-             << endl;
-
     subsize = size / processes;
     subtype = type;
     subarray.resize(subsize);
@@ -67,7 +65,7 @@ void Start(int process, int processes, int size, int type, int &subsize, int &su
     MPI_Scatter(array.data(), subsize, MPI_INT, subarray.data(), subsize, MPI_INT, MASTER, MPI_COMM_WORLD);
 }
 
-void End(int process, int processes, int size, int type, int &subsize, int &subtype, std::vector<int> &subarray)
+void End(int process, int processes, int size, int type, int &subsize, int &subtype, std::vector<int> &subarray, bool &sorted)
 {
     bool sort = is_sorted(subarray.begin(), subarray.end());
 
@@ -115,15 +113,15 @@ void End(int process, int processes, int size, int type, int &subsize, int &subt
     bool status = false;
     MPI_Reduce(&sort, &status, 1, MPI_C_BOOL, MPI_LAND, MASTER, MPI_COMM_WORLD);
 
-    if (process == MASTER)
-        cout << "Sample Sort: "
-             << (status ? "Success" : "Failure")
-             << endl;
+    sorted = status;
 }
 
 int main(int argc, char const *argv[])
 {
+    CALI_CXX_MARK_FUNCTION;
+
     int size, type;
+    bool sorted;
     {
         if (argc != 3)
         {
@@ -148,36 +146,81 @@ int main(int argc, char const *argv[])
         type = static_cast<int>(t);
     }
 
+    const char *data_init_runtime = "data_init_runtime";
+    const char *comm = "comm";
+    const char *comm_small = "comm_small";
+    const char *comm_large = "comm_large";
+    const char *comp = "comp";
+    const char *comp_small = "comp_small";
+    const char *comp_large = "comp_large";
+    const char *correctness_check = "correctness_check";
+
     int processes, process;
     MPI_Init(&argc, (char ***)&argv);
     MPI_Comm_size(MPI_COMM_WORLD, &processes);
     MPI_Comm_rank(MPI_COMM_WORLD, &process);
     MPI_Status status;
 
+    cali::ConfigManager manager;
+    manager.start();
+
+    if (process == MASTER)
+        cout << "Sample Sort: "
+             << "Size" << "(" << size << ")"
+             << " - "
+             << "Type" << "(" << type << ")"
+             << endl;
+
     int subsize, subtype;
     vector<int> subarray;
 
-    Start(process, processes, size, type, subsize, subtype, subarray);
+    CALI_MARK_BEGIN(data_init_runtime);
+    Start(process, processes, size, type, subsize, subtype, subarray, sorted);
+    CALI_MARK_END(data_init_runtime);
 
+    CALI_MARK_BEGIN(comp);
+    CALI_MARK_BEGIN(comp_large);
     sort(subarray.begin(), subarray.end());
+    CALI_MARK_END(comp_large);
 
+    CALI_MARK_BEGIN(comp_small);
     vector<int> candidates(processes - 1);
     for (int index = 0; index < processes - 1; index++)
     {
         candidates.at(index) = subarray.at(index * (subsize / (processes - 1)));
     }
+    CALI_MARK_END(comp_small);
+    CALI_MARK_END(comp);
 
+    CALI_MARK_BEGIN(comm);
+    CALI_MARK_BEGIN(comm_small);
     vector<int> samples(processes * (processes - 1));
     MPI_Gather(candidates.data(), processes - 1, MPI_INT, samples.data(), processes - 1, MPI_INT, MASTER, MPI_COMM_WORLD);
-    sort(samples.begin(), samples.end());
+    CALI_MARK_END(comm_small);
+    CALI_MARK_END(comm);
 
+    CALI_MARK_BEGIN(comp);
+    CALI_MARK_BEGIN(comp_small);
+    sort(samples.begin(), samples.end());
+    CALI_MARK_END(comp_small);
+
+    CALI_MARK_BEGIN(comp_small);
     vector<int> splitters(processes - 1);
     for (int index = 0; index < processes - 1; index++)
     {
         splitters.at(index) = samples.at((index + 1) * (processes - 1));
     }
-    MPI_Bcast(splitters.data(), processes - 1, MPI_INT, MASTER, MPI_COMM_WORLD);
+    CALI_MARK_END(comp_small);
+    CALI_MARK_END(comp);
 
+    CALI_MARK_BEGIN(comm);
+    CALI_MARK_BEGIN(comm_small);
+    MPI_Bcast(splitters.data(), processes - 1, MPI_INT, MASTER, MPI_COMM_WORLD);
+    CALI_MARK_END(comm_small);
+    CALI_MARK_END(comm);
+
+    CALI_MARK_BEGIN(comp);
+    CALI_MARK_BEGIN(comp_large);
     vector<vector<int>> buckets(processes);
     for (int index = 0; index < subsize; index++)
     {
@@ -196,9 +239,13 @@ int main(int argc, char const *argv[])
             buckets.at(processes - 1).push_back(subarray.at(index));
         }
     }
+    CALI_MARK_END(comp_large);
+    CALI_MARK_END(comp);
 
     subarray = buckets.at(process);
 
+    CALI_MARK_BEGIN(comm);
+    CALI_MARK_BEGIN(comm_large);
     for (int index = 0; index < processes; index++)
     {
         if (process != index)
@@ -219,13 +266,53 @@ int main(int argc, char const *argv[])
             vector<int> temporary(bucket);
             MPI_Recv(temporary.data(), bucket, MPI_INT, index, 0, MPI_COMM_WORLD, &status);
 
+            CALI_MARK_BEGIN(comp);
+            CALI_MARK_BEGIN(comp_large);
             vector<int> result(subarray.size() + temporary.size());
             merge(subarray.begin(), subarray.end(), temporary.begin(), temporary.end(), result.begin());
             subarray = result;
+            CALI_MARK_END(comp_large);
+            CALI_MARK_END(comp);
         }
     }
+    CALI_MARK_END(comm_large);
+    CALI_MARK_END(comm);
 
-    End(process, processes, size, type, subsize, subtype, subarray);
+    CALI_MARK_BEGIN(correctness_check);
+    End(process, processes, size, type, subsize, subtype, subarray, sorted);
+    CALI_MARK_END(correctness_check);
+
+    if (process == MASTER)
+        cout << "Sample Sort: "
+             << (sorted ? "Success" : "Failure")
+             << endl;
+
+    adiak::init(NULL);
+    adiak::launchdate();
+    adiak::libraries();
+    adiak::cmdline();
+    adiak::clustername();
+    adiak::value("algorithm", "sample");
+    adiak::value("programming_model", "mpi");
+    adiak::value("data_type", "int");
+    adiak::value("size_of_data_type", sizeof(int));
+    adiak::value("input_size", size);
+    adiak::value("num_procs", processes);
+    adiak::value("scalability", "strong");
+    adiak::value("group_num", 24);
+    adiak::value("implementation_source", "handwritten");
+
+    if (type == 0)
+        adiak::value("input_type", "Sorted");
+    else if (type == 1)
+        adiak::value("input_type", "1_perc_perturbed");
+    else if (type == 2)
+        adiak::value("input_type", "Random");
+    else if (type == 3)
+        adiak::value("input_type", "ReverseSorted");
+
+    manager.stop();
+    manager.flush();
 
     MPI_Finalize();
 }
