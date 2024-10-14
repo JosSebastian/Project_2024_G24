@@ -95,15 +95,12 @@ void data_init(const int taskid, const int numtasks, const int n_each, std::vect
 int main(int argc, char* argv[]) {
     CALI_CXX_MARK_FUNCTION;
 
-    int n;
-    std::string sort_type_str;
     if (argc != 3) {
         std::cout << ("Usage: bitonic_sort n sort_type\n");
         return 1;
-    } else {
-        n = atoi(argv[1]);
-        sort_type_str = argv[2];
     }
+    const auto n = atoi(argv[1]);
+    const auto sort_type_str = argv[2];
 
     sort_type sort_type = sorted;
     if (sort_type_str == "Sorted") {
@@ -162,15 +159,26 @@ int main(int argc, char* argv[]) {
 
     for (int s = 2; s <= numtasks; s <<= 1) {
         for (int t = s >> 1; t > 0; t >>= 1) {
+            CALI_MARK_BEGIN(comp);
+            CALI_MARK_BEGIN(comp_small);
             // Determine partner
             auto partner_task = taskid ^ t;
+            CALI_MARK_END(comp_small);
+            CALI_MARK_END(comp);
 
             if (partner_task < numtasks) {
+                CALI_MARK_BEGIN(comp);
+                CALI_MARK_BEGIN(comp_small);
                 // Determine direction based on bit at s in taskid
                 const auto direction = ((taskid & s) == 0) ? UP : DOWN;
 
                 // Data exchange with partner
                 auto partner_data = std::vector<int>(n_each);
+                CALI_MARK_END(comp_small);
+                CALI_MARK_END(comp);
+
+                CALI_MARK_BEGIN(comm);
+                CALI_MARK_BEGIN(comm_large);
                 if (taskid < partner_task) {
                     MPI_Send(local_data.data(), n_each, MPI_INT, partner_task, 0, MPI_COMM_WORLD);
                     MPI_Recv(partner_data.data(), n_each, MPI_INT, partner_task, 0, MPI_COMM_WORLD, &status);
@@ -178,7 +186,11 @@ int main(int argc, char* argv[]) {
                     MPI_Recv(partner_data.data(), n_each, MPI_INT, partner_task, 0, MPI_COMM_WORLD, &status);
                     MPI_Send(local_data.data(), n_each, MPI_INT, partner_task, 0, MPI_COMM_WORLD);
                 }
+                CALI_MARK_END(comm_large);
+                CALI_MARK_END(comm);
 
+                CALI_MARK_BEGIN(comp);
+                CALI_MARK_BEGIN(comp_large);
                 // Combine data with partner
                 auto merged_data = std::vector<int>(n_each * 2);
                 std::merge(local_data.begin(), local_data.end(), partner_data.begin(), partner_data.end(), merged_data.begin());
@@ -189,24 +201,29 @@ int main(int argc, char* argv[]) {
                 } else {
                     std::copy(merged_data.begin() + n_each, merged_data.end(), local_data.begin());
                 }
+                CALI_MARK_END(comp_large);
+                CALI_MARK_END(comp);
             }
+            CALI_MARK_BEGIN(comm);
             MPI_Barrier(MPI_COMM_WORLD);
+            CALI_MARK_END(comm);
         }
     }
 
-    // Print local data (debugging)
-    std::stringstream ss;
-    bool first = true;
-    for (int i : local_data) {
-        if (!first)
-            ss << ", ";
-        ss << i;
-        first = false;
-    }
-
-    std::cout << "Task " << taskid << " Data: " << ss.str() << std::endl;
+    // // Print local data (debugging)
+    // std::stringstream ss;
+    // bool first = true;
+    // for (int i : local_data) {
+    //     if (!first)
+    //         ss << ", ";
+    //     ss << i;
+    //     first = false;
+    // }
+    //
+    // std::cout << "Task " << taskid << " Data: " << ss.str() << std::endl;
 
     // Correctness check
+    CALI_MARK_BEGIN(correctness_check);
     // Ensure data is sorted locally
     for (size_t i = 1; i < local_data.size(); ++i) {
         if (local_data[i - 1] > local_data[i]) {
@@ -232,6 +249,7 @@ int main(int argc, char* argv[]) {
             return 1;
         }
     }
+    CALI_MARK_END(correctness_check);
 
     MPI_Finalize();
     return 0;
