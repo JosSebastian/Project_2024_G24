@@ -31,82 +31,114 @@ void Start(int process, int processes, int size, int type, int &subsize, int &su
     subtype = type;
     subarray.resize(subsize);
 
-    vector<int> array(size);
-    for (int index = 0; index < size; index++)
+    if (type == 0)
     {
-        array.at(index) = index;
+        for (int index = 0; index < subsize; index++)
+        {
+            subarray.at(index) = (process * subsize) + index;
+        }
     }
 
     if (type == 1)
     {
-        random_device device;
-        mt19937 generator(device());
-        uniform_int_distribution<int> distribution(0, size - 1);
-
-        int perturb = size / 100;
-        for (int i = 0; i < perturb; ++i)
+        for (int index = 0; index < subsize; index++)
         {
-            int index1 = distribution(generator);
-            int index2 = distribution(generator);
-            swap(array.at(index1), array.at(index2));
+            subarray.at(index) = (process * subsize) + index;
+        }
+
+        if (process == 0)
+        {
+            int perturb = 0.005 * size < subsize ? int(0.005 * size) : subsize;
+            for (int index = 0; index < perturb; index++)
+            {
+                subarray.at(index) = (processes * subsize) - ((process * subsize) + index + 1);
+            }
+        }
+        if (process == processes - 1)
+        {
+            int perturb = 0.005 * size < subsize ? int(0.005 * size) : subsize;
+            for (int index = 0; index < perturb; index++)
+            {
+                subarray.at(subarray.size() - index - 1) = index;
+            }
         }
     }
     else if (type == 2)
     {
         random_device device;
         mt19937 generator(device());
-        shuffle(array.begin(), array.end(), generator);
+        uniform_int_distribution<int> distribution(0, size);
+
+        for (int index = 0; index < subsize; index++)
+        {
+            subarray.at(index) = distribution(generator);
+        }
     }
     if (type == 3)
     {
-        reverse(array.begin(), array.end());
+        for (int index = 0; index < subsize; index++)
+        {
+            subarray.at(index) = (processes * subsize) - ((process * subsize) + index + 1);
+        }
     }
-
-    MPI_Scatter(array.data(), subsize, MPI_INT, subarray.data(), subsize, MPI_INT, MASTER, MPI_COMM_WORLD);
 }
 
 void End(int process, int processes, int size, int type, int &subsize, int &subtype, std::vector<int> &subarray, bool &sorted)
 {
     bool sort = is_sorted(subarray.begin(), subarray.end());
 
-    if (sort)
+    int bucket = subarray.size();
+    vector<int> buckets(processes);
+    MPI_Gather(&bucket, 1, MPI_INT, buckets.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(buckets.data(), processes, MPI_INT, 0, MPI_COMM_WORLD);
+
+    int left = -1;
+    for (int index = process - 1; index >= 0; index--)
     {
-        MPI_Status status;
-        int first, last;
-        int before, after;
-
-        if (process == 0)
+        if (buckets.at(index) != 0)
         {
-            last = subarray.at(subarray.size() - 1);
-
-            MPI_Send(&last, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
-            MPI_Recv(&after, 1, MPI_INT, 1, 0, MPI_COMM_WORLD, &status);
-
-            if (last > after)
-                sort = false;
+            left = index;
+            break;
         }
-        else if (process == processes - 1)
+    }
+
+    int right = -1;
+    for (int index = process + 1; index < processes; index++)
+    {
+        if (buckets.at(index) != 0)
         {
-            first = subarray.at(0);
+            right = index;
+            break;
+        }
+    }
 
-            MPI_Send(&first, 1, MPI_INT, processes - 2, 0, MPI_COMM_WORLD);
-            MPI_Recv(&before, 1, MPI_INT, processes - 2, 0, MPI_COMM_WORLD, &status);
-
-            if (first < before)
+    if (!(buckets.at(process) == 0 || (left == -1 && right == -1)))
+    {
+        int l, r;
+        if (left == -1)
+        {
+            l = subarray.at(subarray.size() - 1);
+            MPI_Recv(&r, 1, MPI_INT, right, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            if (l > r)
+            {
                 sort = false;
+            }
+        }
+        else if (right == -1)
+        {
+            r = subarray.at(0);
+            MPI_Send(&r, 1, MPI_INT, left, 0, MPI_COMM_WORLD);
         }
         else
         {
-            first = subarray.at(0);
-            last = subarray.at(subarray.size() - 1);
-
-            MPI_Send(&first, 1, MPI_INT, process - 1, 0, MPI_COMM_WORLD);
-            MPI_Send(&last, 1, MPI_INT, process + 1, 0, MPI_COMM_WORLD);
-            MPI_Recv(&before, 1, MPI_INT, process - 1, 0, MPI_COMM_WORLD, &status);
-            MPI_Recv(&after, 1, MPI_INT, process + 1, 0, MPI_COMM_WORLD, &status);
-
-            if (first < before || last > after)
+            r = subarray.at(0);
+            MPI_Send(&r, 1, MPI_INT, left, 0, MPI_COMM_WORLD);
+            l = subarray.at(subarray.size() - 1);
+            MPI_Recv(&r, 1, MPI_INT, right, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            if (l > r)
+            {
                 sort = false;
+            }
         }
     }
 
