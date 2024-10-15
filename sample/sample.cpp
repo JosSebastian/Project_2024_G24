@@ -146,6 +146,8 @@ int main(int argc, char const *argv[])
         type = static_cast<int>(t);
     }
 
+    double total_time;
+
     const char *data_init_runtime = "data_init_runtime";
     const char *comm = "comm";
     const char *comm_small = "comm_small";
@@ -164,6 +166,7 @@ int main(int argc, char const *argv[])
     cali::ConfigManager manager;
     manager.start();
 
+    double total_time_start = MPI_Wtime();
     if (process == MASTER)
         cout << "Sample Sort: "
              << "Size" << "(" << size << ")"
@@ -282,6 +285,7 @@ int main(int argc, char const *argv[])
     End(process, processes, size, type, subsize, subtype, subarray, sorted);
     CALI_MARK_END(correctness_check);
 
+    double total_time_stop = MPI_Wtime();
     if (process == MASTER)
         cout << "Sample Sort: "
              << (sorted ? "Success" : "Failure")
@@ -310,6 +314,14 @@ int main(int argc, char const *argv[])
         adiak::value("input_type", "Random");
     else if (type == 3)
         adiak::value("input_type", "ReverseSorted");
+
+    total_time = total_time_stop - total_time_start;
+    adiak::value("total_time", total_time);
+
+    if (process == MASTER)
+        cout << "Sample Sort: "
+             << total_time << " seconds"
+             << endl;
 
     manager.stop();
     manager.flush();
