@@ -354,6 +354,7 @@ CALI_MARK_END("comp");
 └─ 0.440 correctness_check
 ```
 ### Sample Sort Calltree
+```
 1.054 main
 ├─ 0.000 MPI_Comm_dup
 ├─ 0.000 MPI_Finalize
@@ -379,6 +380,7 @@ CALI_MARK_END("comp");
 │  ├─ 0.000 MPI_Reduce
 │  └─ 0.000 MPI_Send
 └─ 0.005 data_init_runtime
+```
 
 ### 3b. Collect Metadata
 
