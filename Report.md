@@ -35,73 +35,98 @@ The main method of communication for this group project will be through Slack.
 
 #### Sample Sort
 ```
-p = Number of Processes
-array = Array for Problem Type
-n = Problem Size
+function Start(process, processes, size, type, subsize, subtype, subarray, sorted):
+    subsize = size / processes
+    subtype = type
+    initialize subarray with size subsize
 
-id = Process Identification
+    if type == 0:
+        for index from 0 to subsize - 1:
+            subarray[index] = (process * subsize) + index
 
-master_process = 0
-worker_processes = [1, 2, 3, ..., p - 1]
+    else if type == 1:
+        for index from 0 to subsize - 1:
+            subarray[index] = (process * subsize) + index
+        if process == 0:
+            perturb = min(0.005 * size, subsize)
+            for index from 0 to perturb - 1:
+                subarray[index] = (processes * subsize) - ((process * subsize) + index + 1)
+        else if process == processes - 1:
+            perturb = min(0.005 * size, subsize)
+            for index from 0 to perturb - 1:
+                subarray[subsize - index - 1] = index
 
-if id is master_process:
+    else if type == 2:
+        for index from 0 to subsize - 1:
+            subarray[index] = random number between 0 and size
 
-    b = n / p
+    else if type == 3:
+        for index from 0 to subsize - 1:
+            subarray[index] = (processes * subsize) - ((process * subsize) + index + 1)
 
-    for index, process in worker_processes:
-        start = index * b;
-        end = (index + 1) * b
-        Send(array[start:end], to=process)
+function End(process, processes, size, type, subsize, subtype, subarray, sorted):
+    sort_status = is_sorted(subarray)
 
-    candidates = []
-    for process in worker_processes:
-        candidate = Receive(from=process)
-        candidates.append(candidate)
-    candidates = Sort(candidates)
+    bucket = size of subarray
+    buckets = array of size processes
+    MPI_Gather(bucket to buckets from all processes)
+    MPI_Bcast buckets to all processes
 
-    splitters = ChooseSplitters(candidates, count=p-1)
-    for process in worker_processes:
-        Send(splitters, to=worker_processes)
+    left = find left neighbor with non-zero bucket
+    right = find right neighbor with non-zero bucket
 
-    sample_sort = Receive(from=p-1)
+    if bucket is not zero and left and right are not both -1:
+        if left == -1:
+            l = last element of subarray
+            r = receive from right
+            sort_status = sort_status AND (l <= r)
+        else if right == -1:
+            r = first element of subarray
+            send r to left
+        else:
+            send r to left
+            l = last element of subarray
+            r = receive from right
+            sort_status = sort_status AND (l <= r)
 
-else if id is in worker_process:
+    global_status = AND of sort_status from all processes
+    sorted = global_status
 
-    segment = Receive(from=master_process)
-    segment = Sort(segment)
+function main(argc, argv):
+    if argc != 3:
+        print usage message and exit
 
-    candidates = ChooseCandidates(segment, count=p-1)
-    Send(candidates, to=master_process)
+    size = 2 raised to power of atoi(argv[1])
+    type = atoi(argv[2])
 
-    splitters = Receive(from=master_process)
+    initialize MPI and get process and total number of processes
 
-    buckets = [[] * (size(splitters) + 1)]
-    for element in segment:
-        found = false
-        for index, splitter in splitters:
-            if element < splitters:
-                buckets[index].append(element)
-                found = true
-                break
-        if not found:
-            buckets[-1].append(element)
+    start timing
+    if process == MASTER:
+        print "Sample Sort: Size" and "Type"
 
-    for index, bucket in buckets:
-        buckets[index] = Sort(bucket)
+    initialize subsize, subtype, and subarray
+    Start(process, processes, size, type, subsize, subtype, subarray, sorted)
 
-    merged_buckets = []
-    if id % 2 == 0:
-        Send(buckets, to=process_id + 1)
-        received_buckets = Receive(from=process_id - 1)
-        merged_buckets = Merge(buckets, received_buckets)
-        Send(merged_buckets, to=process_id - 1)
-    else if id % 2 == 1:
-        received_buckets = Receive(from=process_id - 1)
-        merged_buckets = Merge(buckets, received_buckets)
-        Send(merged_buckets, to=process_id + 1)
+    sort subarray
 
-    if id == p - 1:
-        Send(merged_buckets, to=master_process)
+    gather candidates for sampling from all processes
+    sort candidates
+
+    find splitters and broadcast to all processes
+
+    initialize buckets
+    distribute elements into buckets based on splitters
+
+    subarray = bucket of current process
+    exchange buckets between processes and merge
+
+    End(process, processes, size, type, subsize, subtype, subarray, sorted)
+
+    if process == MASTER:
+        print result of sort and time taken
+
+    finalize MPI
 
 ```
 
@@ -328,6 +353,32 @@ CALI_MARK_END("comp");
 ├─ 0.201 data_init_runtime
 └─ 0.440 correctness_check
 ```
+### Sample Sort Calltree
+1.054 main
+├─ 0.000 MPI_Comm_dup
+├─ 0.000 MPI_Finalize
+├─ 0.000 MPI_Finalized
+├─ 0.000 MPI_Init
+├─ 0.000 MPI_Initialized
+├─ 0.006 comm
+│  ├─ 0.003 comm_large
+│  │  ├─ 0.001 MPI_Recv
+│  │  ├─ 0.000 MPI_Send
+│  │  └─ 0.003 comp
+│  │     └─ 0.003 comp_large
+│  └─ 0.002 comm_small
+│     ├─ 0.001 MPI_Bcast
+│     └─ 0.001 MPI_Gather
+├─ 0.025 comp
+│  ├─ 0.025 comp_large
+│  └─ 0.000 comp_small
+├─ 0.005 correctness_check
+│  ├─ 0.000 MPI_Bcast
+│  ├─ 0.004 MPI_Gather
+│  ├─ 0.000 MPI_Recv
+│  ├─ 0.000 MPI_Reduce
+│  └─ 0.000 MPI_Send
+└─ 0.005 data_init_runtime
 
 ### 3b. Collect Metadata
 
