@@ -48,7 +48,7 @@ void data_init(const int taskid, const int numtasks, const int n_each, std::vect
         std::iota(data.begin(), data.end(), taskid * n_each);
 
         int perturb_count = static_cast<int>(n_each * 0.01);
-        if (perturb_count == 0) perturb_count = 1; // Ensure at least one element is perturbed
+        if (perturb_count == 0) perturb_count = 1;
 
         // Randomly perturb 1% of the data
         std::random_device rd;
@@ -61,7 +61,6 @@ void data_init(const int taskid, const int numtasks, const int n_each, std::vect
             data[idx] = value_dist(gen);
         }
 
-        // Determine partner task in a symmetric way
         int partner_task;
         if (numtasks % 2 == 0) {
             // For even number of tasks, pair taskid with taskid ^ 1
@@ -73,7 +72,7 @@ void data_init(const int taskid, const int numtasks, const int n_each, std::vect
 
         // Ensure partner_task is within bounds
         if (partner_task >= numtasks) {
-            partner_task = taskid; // No partner; skip exchange
+            partner_task = taskid;
         }
 
         if (partner_task != taskid) {
