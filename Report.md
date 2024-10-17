@@ -456,7 +456,20 @@ adiak::value("implementation_source", implementation_source); // Where you got t
     "implementation_source": "handwritten"
 }
 ```
-
+#### Merge sort
+```json
+{
+    "algorithm": "merge",
+    "programming_model": "mpi",
+    "data_type": "int",
+    "size_of_data_type": "4",
+    "input_size": "65536",
+    "num_procs": "4",
+    "scalability": "strong",
+    "group_num": "24",
+    "implementation_source": "handwritten"
+}
+```
 
 They will show up in the `Thicket.metadata` if the caliper file is read into Thicket.
 
