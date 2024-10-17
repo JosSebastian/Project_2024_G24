@@ -27,8 +27,8 @@ The main method of communication for this group project will be through Slack.
 
 - Radix Sort:
     Radix sort sorts arrays of numbers by comparing them digit-by-digit. It begins
-    with the least significant digit, and groups numbers into buckets based on 
-    their current digit. This process repeats for all digits, until the number 
+    with the least significant digit, and groups numbers into buckets based on
+    their current digit. This process repeats for all digits, until the number
     with the most digits is fully sorted across all processes.
 
 ### 2b. Pseudocode for each parallel algorithm
@@ -168,7 +168,7 @@ main() {
 
   MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
   MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
-    
+
   if numtasks is not a power of 2:
     return 1
 
@@ -248,20 +248,20 @@ if id == master_process:
 
 else if id is in worker_process:
     local_array = Receive(from=master_process)
-    
+
     for exp in range(1, max_digit):
 
         buckets = ten empty arrays inside a big array
         for number in local_array:
             digit = (number // exp) % 10
             buckets[digit].append(number)
-        
+
         for i in range(10):
             Send(buckets[i], to=all_other_processes)
             Receive(buckets[i], from=all_other_processes)
-        
+
         local_array = concatenate(buckets)
-    
+
     Send(local_array, to=master_process)
 
 if id == master_process:
@@ -285,7 +285,7 @@ if id == master_process:
 - Weak scaling (increase problem size, increase number of processors)
 
 ### 3a. Caliper instrumentation
-Please use the caliper build `/scratch/group/csce435-f24/Caliper/caliper/share/cmake/caliper` 
+Please use the caliper build `/scratch/group/csce435-f24/Caliper/caliper/share/cmake/caliper`
 (same as lab2 build.sh) to collect caliper files for each experiment you run.
 
 Your Caliper annotations should result in the following calltree
@@ -382,6 +382,28 @@ CALI_MARK_END("comp");
 └─ 0.005 data_init_runtime
 ```
 
+### Bitonic Sort Calltree
+```
+15.162 main
+├─ 0.018 MPI_Comm_dup
+├─ 0.000 MPI_Finalize
+├─ 0.000 MPI_Finalized
+├─ 0.000 MPI_Init
+├─ 0.000 MPI_Initialized
+├─ 0.213 comm
+│  ├─ 0.107 MPI_Barrier
+│  └─ 0.104 comm_large
+│     ├─ 0.066 MPI_Recv
+│     └─ 0.035 MPI_Send
+├─ 2.386 comp
+│  ├─ 2.275 comp_large
+│  └─ 0.108 comp_small
+├─ 0.031 correctness_check
+│  ├─ 0.000 MPI_Recv
+│  └─ 0.001 MPI_Send
+└─ 0.063 data_init_local
+```
+
 ### 3b. Collect Metadata
 
 Have the following code in your programs to collect metadata:
@@ -408,7 +430,7 @@ They will show up in the `Thicket.metadata` if the caliper file is read into Thi
 ### **See the `Builds/` directory to find the correct Caliper configurations to get the performance metrics.** They will show up in the `Thicket.dataframe` when the Caliper file is read into Thicket.
 ## 4. Performance evaluation
 
-Include detailed analysis of computation performance, communication performance. 
+Include detailed analysis of computation performance, communication performance.
 Include figures and explanation of your analysis.
 
 ### 4a. Vary the following parameters
@@ -431,9 +453,9 @@ To automate running a set of experiments, parameterize your program.
 - algorithm: You can have a switch statement that calls the different algorithms and sets the Adiak variables accordingly
 - num_procs: How many MPI ranks you are using
 
-When your program works with these parameters, you can write a shell script 
-that will run a for loop over the parameters above (e.g., on 64 processors, 
-perform runs that invoke algorithm2 for Sorted, ReverseSorted, and Random data).  
+When your program works with these parameters, you can write a shell script
+that will run a for loop over the parameters above (e.g., on 64 processors,
+perform runs that invoke algorithm2 for Sorted, ReverseSorted, and Random data).
 
 ### 4c. You should measure the following performance metrics
 - `Time`
