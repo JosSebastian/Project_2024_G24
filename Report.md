@@ -453,7 +453,7 @@ adiak::value("implementation_source", implementation_source); // Where you got t
     "num_procs": "16",
     "scalability": "strong",
     "group_num": "24",
-    "implementation_source": "handwritten"
+    "implementation_source": "online"
 }
 ```
 #### Merge sort
