@@ -423,7 +423,7 @@ CALI_MARK_END("comp");
 └─ 0.014 MPI_Comm_dup
 ```
 
-### Merge Sort Calltree
+### Radix Sort Calltree
 ```
 1.960 main
 ├─ 0.000 MPI_Init
