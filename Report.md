@@ -422,6 +422,24 @@ CALI_MARK_END("comp");
 ├─ 0.000 MPI_Finalized
 └─ 0.014 MPI_Comm_dup
 ```
+
+### Merge Sort Calltree
+```
+1.960 main
+├─ 0.000 MPI_Init
+├─ 0.214 data_distribution
+│  └─ 0.214 MPI_Scatter
+├─ 0.058 local_sort
+├─ 0.028 data_gathering
+│  └─ 0.028 MPI_Gather
+├─ 0.005 final_merge
+├─ 0.000 MPI_Finalize
+├─ 0.125 correctness_check
+├─ 0.000 MPI_Initialized
+├─ 0.000 MPI_Finalized
+└─ 0.168 MPI_Comm_dup
+```
+
 ### 3b. Collect Metadata
 
 Have the following code in your programs to collect metadata:
@@ -470,7 +488,21 @@ adiak::value("implementation_source", implementation_source); // Where you got t
     "implementation_source": "handwritten"
 }
 ```
-
+#### Radix sort
+```json
+{
+    "algorithm": "radix_sort",
+    "programming_model": "mpi",
+    "data_type": "int",
+    "size_of_data_type": 4,
+    "input_size": 16777216,
+    "input_type": "Random",
+    "num_procs": 64,
+    "scalability": "strong",
+    "group_num": 24,
+    "implementation_source": "handwritten"
+}
+```
 They will show up in the `Thicket.metadata` if the caliper file is read into Thicket.
 
 ### **See the `Builds/` directory to find the correct Caliper configurations to get the performance metrics.** They will show up in the `Thicket.dataframe` when the Caliper file is read into Thicket.
