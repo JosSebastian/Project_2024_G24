@@ -1,6 +1,7 @@
 
 #include <cstdlib>
 #include <cmath>
+#include <climits>
 
 #include <iostream>
 using std::cout, std::endl;
@@ -67,7 +68,7 @@ void Start(int process, int processes, int size, int type, int &subsize, int &su
     {
         random_device device;
         mt19937 generator(device());
-        uniform_int_distribution<int> distribution(0, size);
+        uniform_int_distribution<int> distribution(INT_MIN, INT_MAX);
 
         for (int index = 0; index < subsize; index++)
         {
@@ -198,7 +199,6 @@ int main(int argc, char const *argv[])
     cali::ConfigManager manager;
     manager.start();
 
-    double total_time_start = MPI_Wtime();
     if (process == MASTER)
         cout << "Sample Sort: "
              << "Size" << "(" << size << ")"
@@ -212,6 +212,8 @@ int main(int argc, char const *argv[])
     CALI_MARK_BEGIN(data_init_runtime);
     Start(process, processes, size, type, subsize, subtype, subarray, sorted);
     CALI_MARK_END(data_init_runtime);
+
+    double total_time_start = MPI_Wtime();
 
     CALI_MARK_BEGIN(comp);
     CALI_MARK_BEGIN(comp_large);
@@ -313,11 +315,12 @@ int main(int argc, char const *argv[])
     CALI_MARK_END(comm_large);
     CALI_MARK_END(comm);
 
+    double total_time_stop = MPI_Wtime();
+
     CALI_MARK_BEGIN(correctness_check);
     End(process, processes, size, type, subsize, subtype, subarray, sorted);
     CALI_MARK_END(correctness_check);
 
-    double total_time_stop = MPI_Wtime();
     if (process == MASTER)
         cout << "Sample Sort: "
              << (sorted ? "Success" : "Failure")
@@ -348,7 +351,7 @@ int main(int argc, char const *argv[])
         adiak::value("input_type", "ReverseSorted");
 
     total_time = total_time_stop - total_time_start;
-    adiak::value("total_time", total_time);
+    adiak::value("whole_computation", total_time);
 
     if (process == MASTER)
         cout << "Sample Sort: "
