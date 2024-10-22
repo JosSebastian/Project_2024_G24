@@ -508,41 +508,20 @@ They will show up in the `Thicket.metadata` if the caliper file is read into Thi
 ### **See the `Builds/` directory to find the correct Caliper configurations to get the performance metrics.** They will show up in the `Thicket.dataframe` when the Caliper file is read into Thicket.
 ## 4. Performance evaluation
 
-Include detailed analysis of computation performance, communication performance.
-Include figures and explanation of your analysis.
+### Bitonic Sort
+#### Strong Scaling Performance
+![strong_scaling_avg_across_input_types.png](bitonic_sort/analysis/plots/strong_scaling_avg_across_input_types.png)
 
-### 4a. Vary the following parameters
-For input_size's:
-- 2^16, 2^18, 2^20, 2^22, 2^24, 2^26, 2^28
+#### Weak Scaling Performance
+![weak_scaling_avg_across_input_types.png](bitonic_sort/analysis/plots/weak_scaling_avg_across_input_types.png)
 
-For input_type's:
-- Sorted, Random, Reverse sorted, 1%perturbed
+#### Input Type Performance
+![input_type_impact_on_performance.png](bitonic_sort/analysis/plots/input_type_impact_on_performance.png)
 
-MPI: num_procs:
-- 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024
-
-This should result in 4x7x10=280 Caliper files for your MPI experiments.
-
-### 4b. Hints for performance analysis
-
-To automate running a set of experiments, parameterize your program.
-
-- input_type: "Sorted" could generate a sorted input to pass into your algorithms
-- algorithm: You can have a switch statement that calls the different algorithms and sets the Adiak variables accordingly
-- num_procs: How many MPI ranks you are using
-
-When your program works with these parameters, you can write a shell script
-that will run a for loop over the parameters above (e.g., on 64 processors,
-perform runs that invoke algorithm2 for Sorted, ReverseSorted, and Random data).
-
-### 4c. You should measure the following performance metrics
-- `Time`
-    - Min time/rank
-    - Max time/rank
-    - Avg time/rank
-    - Total time
-    - Variance time/rank
-
+#### Communication Overhead
+![communication_overhead_facetgrid.png](bitonic_sort/analysis/plots/communication_overhead_facetgrid.png)
+##### MPI Barrier Overhead
+![mpi_barrier_percentage_facetgrid.png](bitonic_sort/analysis/plots/mpi_barrier_percentage_facetgrid.png)
 
 ## 5. Presentation
 Plots for the presentation should be as follows:
