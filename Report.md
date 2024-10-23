@@ -543,6 +543,22 @@ perform runs that invoke algorithm2 for Sorted, ReverseSorted, and Random data).
     - Total time
     - Variance time/rank
 
+### Merge Sort
+
+![Max time/rank - 1% perturbed](./merge_sort/plots/Max_time_per_rank_vs._Number_of_Processes_for_Input_Type__1_perc_perturbed.png)
+![Max time/rank - Random](./merge_sort/plots/Max_time_per_rank_vs._Number_of_Processes_for_Input_Type__Random.png)
+![Max time/rank - Sorted](./merge_sort/plots/Max_time_per_rank_vs._Number_of_Processes_for_Input_Type__Sorted.png)
+![Max time/rank - Reverse](./merge_sort/plots/Max_time_per_rank_vs._Number_of_Processes_for_Input_Type__ReverseSorted.png)
+
+![Max computation time/rank - 1% perturbed](./merge_sort/plots/Max_computation_time_per_rank_vs._Number_of_Processes_for_Input_Type__1_perc_perturbed.png)
+![Max computation time/rank - Random](./merge_sort/plots/Max_computation_time_per_rank_vs._Number_of_Processes_for_Input_Type__Random.png)
+![Max computation time/rank - Sorted](./merge_sort/plots/Max_computation_time_per_rank_vs._Number_of_Processes_for_Input_Type__Sorted.png)
+![Max computation time/rank - Reverse](./merge_sort/plots/Max_computation_time_per_rank_vs._Number_of_Processes_for_Input_Type__ReverseSorted.png)
+
+![Max communication time/rank - 1% perturbed](./merge_sort/plots/Max_communication_time_per_rank_vs._Number_of_Processes_for_Input_Type__1_perc_perturbed.png)
+![Max communication time/rank - Random](./merge_sort/plots/Max_communication_time_per_rank_vs._Number_of_Processes_for_Input_Type__Random.png)
+![Max communication time/rank - Sorted](./merge_sort/plots/Max_communication_time_per_rank_vs._Number_of_Processes_for_Input_Type__Sorted.png)
+![Max communication time/rank - Reverse](./merge_sort/plots/Max_communication_time_per_rank_vs._Number_of_Processes_for_Input_Type__ReverseSorted.png)
 
 ## 5. Presentation
 Plots for the presentation should be as follows:
