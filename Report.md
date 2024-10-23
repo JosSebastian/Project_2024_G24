@@ -507,10 +507,10 @@ They will show up in the `Thicket.metadata` if the caliper file is read into Thi
 
 ### **See the `Builds/` directory to find the correct Caliper configurations to get the performance metrics.** They will show up in the `Thicket.dataframe` when the Caliper file is read into Thicket.
 ## 4. Performance evaluation
+### Bitonic Sort
 Unfortunately, the plots are missing data from many of the 1024 processor count runs. These runs were interrupted by a
 bug in grace affecting communication over large processor counts.
 
-### Bitonic Sort
 #### Strong Scaling Performance
 ![strong_scaling_avg_across_input_types.png](bitonic_sort/analysis/plots/strong_scaling_avg_across_input_types.png)
 
@@ -604,10 +604,10 @@ increased input sizes correlates to increase sending and receiving times.
 #### Conclusion
 In conclusion, we see that bitonic sort has diminishing returns as we increase process count, but still provides a
 significant decrease in time per rank as we increase process count. We also see that the overhead of parallelization
-increases as we increase input size, but that the benefits of parallelization still outweigh the costs. We also see that
-the initial sorting of the input data does not have a significant effect on the overall performance of the program, and
-that the communication overhead of the program increases as we increase process count and input size, but that
-increasing process count increases MPI_Barrier time and increasing input size increases sending and receiving time.
+increases as we increase input size, but that the benefits of parallelization still outweigh the costs. Additionally,
+the initial sorting of the input data does not have a significant effect on the overall performance of the program. 
+The communication overhead of the program increases as we increase process count and input size, but increasing
+process count increases MPI_Barrier time and increasing input size increases sending and receiving time.
 
 ## 5. Presentation
 Plots for the presentation should be as follows:
