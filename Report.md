@@ -558,6 +558,28 @@ perform runs that invoke algorithm2 for Sorted, ReverseSorted, and Random data).
     - Total time
     - Variance time/rank
 
+### Sample Sort
+
+![Sample Sort - Total Time (1% Perturbed)](./sample_sort/plots/Sample_Sort_-_Total_Time_1%_Pertrubed.png)
+![Sample Sort - Total Time (Randomized)](./sample_sort/plots/Sample_Sort_-_Total_Time_Randomized.png)
+![Sample Sort - Total Time (Reverse Sorted)](./sample_sort/plots/Sample_Sort_-_Total_Time_Reverse_Sorted.png)
+![Sample Sort - Total Time (Sorted)](./sample_sort/plots/Sample_Sort_-_Total_Time_Sorted.png)
+![Sample Sort - Initialize Data (Runtime) (1% Perturbed)](./sample_sort/plots/Sample_Sort_-_Initilize_Data_(Runtime)_1%_Pertrubed.png)
+![Sample Sort - Initialize Data (Runtime) (Randomized)](./sample_sort/plots/Sample_Sort_-_Initilize_Data_(Runtime)_Randomized.png)
+![Sample Sort - Initialize Data (Runtime) (Reverse Sorted)](./sample_sort/plots/Sample_Sort_-_Initilize_Data_(Runtime)_Reverse_Sorted.png)
+![Sample Sort - Initialize Data (Runtime) (Sorted)](./sample_sort/plots/Sample_Sort_-_Initilize_Data_(Runtime)_Sorted.png)
+![Sample Sort - Correctness Check (1% Perturbed)](./sample_sort/plots/Sample_Sort_-_Correctness_Check_1%_Pertrubed.png)
+![Sample Sort - Correctness Check (Randomized)](./sample_sort/plots/Sample_Sort_-_Correctness_Check_Randomized.png)
+![Sample Sort - Correctness Check (Reverse Sorted)](./sample_sort/plots/Sample_Sort_-_Correctness_Check_Reverse_Sorted.png)
+![Sample Sort - Correctness Check (Sorted)](./sample_sort/plots/Sample_Sort_-_Correctness_Check_Sorted.png)
+![Sample Sort - Communication (1% Perturbed)](./sample_sort/plots/Sample_Sort_-_Communication_1%_Pertrubed.png)
+![Sample Sort - Communication (Randomized)](./sample_sort/plots/Sample_Sort_-_Communication_Randomized.png)
+![Sample Sort - Communication (Reverse Sorted)](./sample_sort/plots/Sample_Sort_-_Communication_Reverse_Sorted.png)
+![Sample Sort - Communication (Sorted)](./sample_sort/plots/Sample_Sort_-_Communication_Sorted.png)
+![Sample Sort - Computation (1% Perturbed)](./sample_sort/plots/Sample_Sort_-_Computation_1%_Pertrubed.png)
+![Sample Sort - Computation (Randomized)](./sample_sort/plots/Sample_Sort_-_Computation_Randomized.png)
+![Sample Sort - Computation (Reverse Sorted)](./sample_sort/plots/Sample_Sort_-_Computation_Reverse_Sorted.png)
+![Sample Sort - Computation (Sorted)](./sample_sort/plots/Sample_Sort_-_Computation_Sorted.png)
 
 ## 5. Presentation
 Plots for the presentation should be as follows:
