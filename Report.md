@@ -550,15 +550,21 @@ perform runs that invoke algorithm2 for Sorted, ReverseSorted, and Random data).
 ![Max time/rank - Sorted](./merge_sort/plots/Max_time_per_rank_vs._Number_of_Processes_for_Input_Type__Sorted.png)
 ![Max time/rank - Reverse](./merge_sort/plots/Max_time_per_rank_vs._Number_of_Processes_for_Input_Type__ReverseSorted.png)
 
+These first graphs show the maximum time taken per rank for the entire main function. I chose to plot max time/rank because the merge sort algorithm sends all the data to a single process, so the process that receives all the data takes the longest, and is a good representation of the total time the algorithm takes. These plots show a distinct decrease in the total time taken as the number of processors increases. The largest impact is seen on a large input size. The algorithm appears to take approximately the same amount of time no matter which input type it is. I do not have any data for 1024 processors due to communication errors on Grace when attempting to run it.
+
 ![Max computation time/rank - 1% perturbed](./merge_sort/plots/Max_computation_time_per_rank_vs._Number_of_Processes_for_Input_Type__1_perc_perturbed.png)
 ![Max computation time/rank - Random](./merge_sort/plots/Max_computation_time_per_rank_vs._Number_of_Processes_for_Input_Type__Random.png)
 ![Max computation time/rank - Sorted](./merge_sort/plots/Max_computation_time_per_rank_vs._Number_of_Processes_for_Input_Type__Sorted.png)
 ![Max computation time/rank - Reverse](./merge_sort/plots/Max_computation_time_per_rank_vs._Number_of_Processes_for_Input_Type__ReverseSorted.png)
 
+These plots above show the computation time for the algorithm. These all show very cleanly the decrease of time as the number of processors increases. We again see a large impact on the largest input size, and the biggest effect is seen when moving from 2 to 4 processors before the graph seems to flatten. 
+
 ![Max communication time/rank - 1% perturbed](./merge_sort/plots/Max_communication_time_per_rank_vs._Number_of_Processes_for_Input_Type__1_perc_perturbed.png)
 ![Max communication time/rank - Random](./merge_sort/plots/Max_communication_time_per_rank_vs._Number_of_Processes_for_Input_Type__Random.png)
 ![Max communication time/rank - Sorted](./merge_sort/plots/Max_communication_time_per_rank_vs._Number_of_Processes_for_Input_Type__Sorted.png)
 ![Max communication time/rank - Reverse](./merge_sort/plots/Max_communication_time_per_rank_vs._Number_of_Processes_for_Input_Type__ReverseSorted.png)
+
+The final plots show the communication time for the algorithm. The most interesting thing to note is the sharp increase at 64 processors. This jump is due to the communication now happening between multiple nodes rather than just on one node. Communicating is much more costly when happening across multiple nodes as is obvious on the graph. We also see a pattern of increasing communication time as the number of processors increases which makes sense due to more messages being passed because there are more processors.
 
 ## 5. Presentation
 Plots for the presentation should be as follows:
