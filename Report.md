@@ -460,6 +460,21 @@ adiak::value("scalability", scalability); // The scalability of your algorithm. 
 adiak::value("group_num", group_number); // The number of your group (integer, e.g., 1, 10)
 adiak::value("implementation_source", implementation_source); // Where you got the source code of your algorithm. choices: ("online", "ai", "handwritten").
 ```
+#### Sample
+```json
+{
+    "algorithm": "Sample Sort",
+    "programming_model": "mpi",
+    "data_type": "int",
+    "size_of_data_type": 4,
+    "input_size": 65536,
+    "input_type": "Random",
+    "num_procs": 32,
+    "scalability": "strong",
+    "group_num": 24,
+    "implementation_source": "handwritten"
+}
+```
 #### Bitonic
 ```json
 {
