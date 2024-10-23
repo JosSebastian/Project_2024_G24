@@ -560,26 +560,32 @@ perform runs that invoke algorithm2 for Sorted, ReverseSorted, and Random data).
 
 ### Sample Sort
 
+#### Plots
+
+![Sample Sort - Total Time (Sorted)](./sample_sort/plots/Sample_Sort_-_Total_Time_Sorted.png)
+![Sample Sort - Total Time (Reverse Sorted)](./sample_sort/plots/Sample_Sort_-_Total_Time_Reverse_Sorted.png)
 ![Sample Sort - Total Time (1% Perturbed)](./sample_sort/plots/Sample_Sort_-_Total_Time_1_Pertrubed.png)
 ![Sample Sort - Total Time (Randomized)](./sample_sort/plots/Sample_Sort_-_Total_Time_Randomized.png)
-![Sample Sort - Total Time (Reverse Sorted)](./sample_sort/plots/Sample_Sort_-_Total_Time_Reverse_Sorted.png)
-![Sample Sort - Total Time (Sorted)](./sample_sort/plots/Sample_Sort_-_Total_Time_Sorted.png)
-![Sample Sort - Initialize Data (Runtime) (1% Perturbed)](./sample_sort/plots/Sample_Sort_-_Initilize_Data_(Runtime)_1_Pertrubed.png)
-![Sample Sort - Initialize Data (Runtime) (Randomized)](./sample_sort/plots/Sample_Sort_-_Initilize_Data_(Runtime)_Randomized.png)
-![Sample Sort - Initialize Data (Runtime) (Reverse Sorted)](./sample_sort/plots/Sample_Sort_-_Initilize_Data_(Runtime)_Reverse_Sorted.png)
-![Sample Sort - Initialize Data (Runtime) (Sorted)](./sample_sort/plots/Sample_Sort_-_Initilize_Data_(Runtime)_Sorted.png)
-![Sample Sort - Correctness Check (1% Perturbed)](./sample_sort/plots/Sample_Sort_-_Correctness_Check_1_Pertrubed.png)
-![Sample Sort - Correctness Check (Randomized)](./sample_sort/plots/Sample_Sort_-_Correctness_Check_Randomized.png)
-![Sample Sort - Correctness Check (Reverse Sorted)](./sample_sort/plots/Sample_Sort_-_Correctness_Check_Reverse_Sorted.png)
-![Sample Sort - Correctness Check (Sorted)](./sample_sort/plots/Sample_Sort_-_Correctness_Check_Sorted.png)
-![Sample Sort - Communication (1% Perturbed)](./sample_sort/plots/Sample_Sort_-_Communication_1_Pertrubed.png)
-![Sample Sort - Communication (Randomized)](./sample_sort/plots/Sample_Sort_-_Communication_Randomized.png)
-![Sample Sort - Communication (Reverse Sorted)](./sample_sort/plots/Sample_Sort_-_Communication_Reverse_Sorted.png)
-![Sample Sort - Communication (Sorted)](./sample_sort/plots/Sample_Sort_-_Communication_Sorted.png)
+
+The plots above show how the sample sort algorithm performs as we scale up the number of processors.
+
+From 2 to 32 processors, there's a clear trend: as we add more processors, the execution time drops, indicating that the algorithm is making the most of the additional resources.
+
+However, things change when we scale up to 64 to 512 processors. In this range, execution time actually starts to increase. This suggests that after a certain point, adding more processors doesn’t help—instead, it adds extra costs related to both computation and communication. The later plots highlight a noticeable rise in time spent on these factors.
+
+When we take a closer look at the sample sort implementation, we see that the main computational cost comes from allocating values into local buckets. The biggest communication cost comes from sending these values to the right processes and merging them back into local buckets.
+
+I did run into some trouble when trying to execute the algorithm on 1024 processors. I suspect this was mainly due to certain parts of the implementation requiring a lot of communication. Each processor needs to connect with every other processor, leading to a staggering number of transactions—specifically, 1024*1024 communications across multiple nodes. This overwhelming demand likely caused the program to time out before it could finish.
+
+![Sample Sort - Computation (Sorted)](./sample_sort/plots/Sample_Sort_-_Computation_Sorted.png)
+![Sample Sort - Computation (Reverse Sorted)](./sample_sort/plots/Sample_Sort_-_Computation_Reverse_Sorted.png)
 ![Sample Sort - Computation (1% Perturbed)](./sample_sort/plots/Sample_Sort_-_Computation_1_Pertrubed.png)
 ![Sample Sort - Computation (Randomized)](./sample_sort/plots/Sample_Sort_-_Computation_Randomized.png)
-![Sample Sort - Computation (Reverse Sorted)](./sample_sort/plots/Sample_Sort_-_Computation_Reverse_Sorted.png)
-![Sample Sort - Computation (Sorted)](./sample_sort/plots/Sample_Sort_-_Computation_Sorted.png)
+
+![Sample Sort - Communication (Sorted)](./sample_sort/plots/Sample_Sort_-_Communication_Sorted.png)
+![Sample Sort - Communication (Reverse Sorted)](./sample_sort/plots/Sample_Sort_-_Communication_Reverse_Sorted.png)
+![Sample Sort - Communication (1% Perturbed)](./sample_sort/plots/Sample_Sort_-_Communication_1_Pertrubed.png)
+![Sample Sort - Communication (Randomized)](./sample_sort/plots/Sample_Sort_-_Communication_Randomized.png)
 
 ## 5. Presentation
 Plots for the presentation should be as follows:
