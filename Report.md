@@ -560,8 +560,6 @@ perform runs that invoke algorithm2 for Sorted, ReverseSorted, and Random data).
 
 ### Sample Sort
 
-#### Plots
-
 ![Sample Sort - Total Time (Sorted)](./sample_sort/plots/Sample_Sort_-_Total_Time_Sorted.png)
 ![Sample Sort - Total Time (Reverse Sorted)](./sample_sort/plots/Sample_Sort_-_Total_Time_Reverse_Sorted.png)
 ![Sample Sort - Total Time (1% Perturbed)](./sample_sort/plots/Sample_Sort_-_Total_Time_1_Pertrubed.png)
