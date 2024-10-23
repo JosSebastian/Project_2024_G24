@@ -1,0 +1,29 @@
+#!/bin/bash
+## ENVIRONMENT SETTINGS; CHANGE WITH CAUTION
+#SBATCH --export=NONE            # Do not propagate environment
+#SBATCH --get-user-env=L         # Replicate login environment
+#
+## NECESSARY JOB SPECIFICATIONS
+#SBATCH --job-name=radix_sort_512  # Set the job name to "radix_sort_512"
+#SBATCH --time=00:30:00            # Set the wall clock limit
+#SBATCH --nodes=16                 # Request nodes
+#SBATCH --ntasks-per-node=32       # Request tasks/cores per node
+#SBATCH --mem=32G                  # Request GB per node 
+#SBATCH --output=output.%j         # Send stdout/err to "output.[jobID]" 
+#
+## OPTIONAL JOB SPECIFICATIONS
+## SBATCH --mail-type=ALL              # Send email on all job events
+## SBATCH --mail-user=email_address    # Send all emails to email_address 
+#
+## First Executable Line
+#
+array_size=$1
+data_pattern=$2
+
+module load intel/2020b       # Load Intel software stack
+module load CMake/3.12.1
+module load GCCcore/8.3.0
+module load PAPI/6.0.0
+
+CALI_CONFIG="spot(output=p512-a${array_size}-${data_pattern}.cali,time.variance,profile.mpi)" \
+mpirun -np 512 ./radix_sort $array_size $data_pattern

@@ -523,40 +523,16 @@ They will show up in the `Thicket.metadata` if the caliper file is read into Thi
 ### **See the `Builds/` directory to find the correct Caliper configurations to get the performance metrics.** They will show up in the `Thicket.dataframe` when the Caliper file is read into Thicket.
 ## 4. Performance evaluation
 
-Include detailed analysis of computation performance, communication performance.
-Include figures and explanation of your analysis.
+# Radix Sort
 
-### 4a. Vary the following parameters
-For input_size's:
-- 2^16, 2^18, 2^20, 2^22, 2^24, 2^26, 2^28
+Sporadic results were observed across all experiments with radix_sort. Illustrating this phenomenon below are the total execution times for radix sort with each type of input data (Sorted input, randomized input, reverse sorted input, and 1 percent perturbed):
+![image](radix_sort/plots/radixSortedTotalTime.png)
+![image](radix_sort/plots/RadixSortedTotalTimeRandomized.png)
+![image](radix_sort/plots/radixSortTotalTimeReverseSorted.png)
+![image](radix_sort/plots/radixSortTotalTime1p_perturbed.png)
 
-For input_type's:
-- Sorted, Random, Reverse sorted, 1%perturbed
+What can be concluded from these observations is that in the case of radix sort, communication overhead and uneven distribution of work among processes due to the nature of sorting by each digit are the primary time sinks in execution time. The best performance was typically observed among inputs sorted among 2^4 processors. There are diminishing returns for saved exection time after increasing the processors beyond this, as communication overhead between the processes becomes more time consuming.
 
-MPI: num_procs:
-- 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024
-
-This should result in 4x7x10=280 Caliper files for your MPI experiments.
-
-### 4b. Hints for performance analysis
-
-To automate running a set of experiments, parameterize your program.
-
-- input_type: "Sorted" could generate a sorted input to pass into your algorithms
-- algorithm: You can have a switch statement that calls the different algorithms and sets the Adiak variables accordingly
-- num_procs: How many MPI ranks you are using
-
-When your program works with these parameters, you can write a shell script
-that will run a for loop over the parameters above (e.g., on 64 processors,
-perform runs that invoke algorithm2 for Sorted, ReverseSorted, and Random data).
-
-### 4c. You should measure the following performance metrics
-- `Time`
-    - Min time/rank
-    - Max time/rank
-    - Avg time/rank
-    - Total time
-    - Variance time/rank
 
 ### Sample Sort
 
