@@ -507,21 +507,107 @@ They will show up in the `Thicket.metadata` if the caliper file is read into Thi
 
 ### **See the `Builds/` directory to find the correct Caliper configurations to get the performance metrics.** They will show up in the `Thicket.dataframe` when the Caliper file is read into Thicket.
 ## 4. Performance evaluation
+Unfortunately, the plots are missing data from many of the 1024 processor count runs. These runs were interrupted by a
+bug in grace affecting communication over large processor counts.
 
 ### Bitonic Sort
 #### Strong Scaling Performance
 ![strong_scaling_avg_across_input_types.png](bitonic_sort/analysis/plots/strong_scaling_avg_across_input_types.png)
 
+This graph shows the average time per process as the number of processes increases, while input size remains constant.
+The goal of strong scaling is to see whether adding more processes reduces the time per rank efficiently. The cones 
+around the line represent the variance, or the difference between minimum and maximum time per rank. As each rank is
+running in parallel, reducing the time per rank directly correlates to reducing the wall time of the program.
+
+For larger input sizes, we see a massive decrease in time per rank as the number of processes increases, however this
+starts to stabilize around 64 processes. Note that the x axis is logarithmic, so we would expect the trend to be linear
+if we were scaling perfectly. Because the trend slows at larger input sizes, this indicates diminishing returns on
+adding new processes, which we will explore further in the communication overhead section.
+
+For smaller input sizes, we actually see a trend of increasing time per rank as we increase the number of processes.
+This further points to overhead in the program, as the communication portion of the program quickly comes to dominate
+the relatively fast serial computation times at these smaller input sizes. This indicates that parallelization is not 
+ideal for these smaller input sizes, as the overhead of communication outweighs the benefits of parallel computation.
+
+![strong_scaling_avg_across_input_types_total_time.png](bitonic_sort/analysis/plots/strong_scaling_avg_across_input_types_total_time.png)
+
+This plot is similar to the last, except it shows total execution time rather than time per rank. This is effectively
+the time per rank multiplied by the number of ranks, so it is a measure of how much resources the program takes to run.
+Ideally, and if there were no other overhead from parallelization, the total time would remain constant. As we double
+the rank, contributing to an increase in total time, we would see a halving of time per rank, resulting in a constant.
+
+This is not what we see in the graph, further pointing to overhead as we further parallelize the program. Not that this
+does not mean we should not parallelize at larger input sizes, as it still is reducing the wall time of the program, but
+this further shows the diminishing returns that we do get and the increased total cost of running the program.
+
 #### Weak Scaling Performance
 ![weak_scaling_avg_across_input_types.png](bitonic_sort/analysis/plots/weak_scaling_avg_across_input_types.png)
+
+This graph shows the average time per rank as we increase both number of processes and input size by the same factor.
+In weak scaling, the goal is to keep the amount of work the same in each process as input size increases by also
+increasing resources, and thus we would ideally see a flat line.
+
+For the smaller input sizes and process counts, we see a steady increase in average time per rank, pointing to
+parallelization overhead. Further increases in process size and input size interestingly show better weak scaling.
+This is likely due to the fact that the overhead of parallelization is more outweighed (but not completely, as we still
+see a positive trend) by the increased resources and work that the program is doing.
+
+![weak_scaling_avg_across_input_types_total_time.png](bitonic_sort/analysis/plots/weak_scaling_avg_across_input_types_total_time.png)
+
+This plot displays the total execution time of the program as we increase both input size and process count. Ideally, we
+would also expect this graph to remain constant, as the total work done by the program is increasing at the same rate as
+the resources available to the program. This is not what we see, as the total time increases as we increase input size
+and process count. This further points to overhead in the program, as the total time is increasing faster than the extra
+resources are able to compensate for the larger input size.
 
 #### Input Type Performance
 ![input_type_impact_on_performance.png](bitonic_sort/analysis/plots/input_type_impact_on_performance.png)
 
+Before analyzing the communication overhead, and thus overhead of parallelization, we will look at how the initial input
+sorting affects program performance. This graph shows the average time per rank for each input type, averaged across
+all input sizes and processor counts. While there is some variation, there is also a large variance, and each average is
+well withing the variance of the others. This indicates that the initial sorting of the input data does not have effect
+on the overall performance of the program, which makes sense as bitonic sort is not a stable sorting algorithm.
+
 #### Communication Overhead
 ![communication_overhead_facetgrid.png](bitonic_sort/analysis/plots/communication_overhead_facetgrid.png)
+
+Finally, we will look at the communication overhead of the program. This graph shows the percentage of time spent in
+communication portions of the program, broken down by input size along the y axis, processor count along the x axis for
+each graph, and input type along the top. The interesting thing to note about this graph is the relationship between
+increasing processes and increasing input size. As we increase process counts for smaller input sizes, we see that the
+communication overhead increases at a fairly shallow slope, with some increased variation among the larger process counts
+likely due to having to communicate across more nodes. However, for the larger input sizes (at the bottom of the graph),
+we see a much steeper slope as numer of processes increases. This indicates that the communication overhead is increasing
+faster when input size is larger than when input size is smaller. This is likely due to the fact that the larger input
+sizes naturally require more networking to communicate, and thus the overhead of parallelization is more pronounced.
+
+In summary, here we see two distinct trends in communication overhead. As process size increases, communication overhead
+increases as part of synchronizing all process with MPI_Barrier. As input size increases, communication overhead
+increases as part of sending more traffic across the network. These two factors combine as we increase both process size
+and input count, resulting in the trends that we see on this graph. We can further validate this by looking at what
+percent of communication is spent in MPI_Barrier.
+
 ##### MPI Barrier Overhead
 ![mpi_barrier_percentage_facetgrid.png](bitonic_sort/analysis/plots/mpi_barrier_percentage_facetgrid.png)
+
+This graph shows the percentage of communication time that is taken up by MPI_Barrier waiting to synchronize all
+processes. This graph is notably distinct from the last in that we see a much more pronounced increase in MPI_Barrier
+time as we increase process count, but a decrease in MPI_Barrier time as we increase input size. This is likely due to
+the fact that MPI_Barrier is a blocking call that waits for all processes to reach the same point in the program, and
+thus as we increase process count, we increase the time spent waiting for all processes to reach the barrier. However,
+again, as we increase input size, we increase the amount of data that needs to be communicated, and thus the time spent
+waiting for all processes to reach the barrier decreases as a percentage of total communication time. This graph seems
+to provide evidence to the hypothesis that increased process count correlates to increased MPI_Barrier times and
+increased input sizes correlates to increase sending and receiving times.
+
+#### Conclusion
+In conclusion, we see that bitonic sort has diminishing returns as we increase process count, but still provides a
+significant decrease in time per rank as we increase process count. We also see that the overhead of parallelization
+increases as we increase input size, but that the benefits of parallelization still outweigh the costs. We also see that
+the initial sorting of the input data does not have a significant effect on the overall performance of the program, and
+that the communication overhead of the program increases as we increase process count and input size, but that
+increasing process count increases MPI_Barrier time and increasing input size increases sending and receiving time.
 
 ## 5. Presentation
 Plots for the presentation should be as follows:
