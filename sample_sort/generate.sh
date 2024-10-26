@@ -1,6 +1,6 @@
 #!/bin/bash
 
-num_procs=(2 4 8 16 32 64 128 256 512 1024)
+num_procs=(1 2 4 8 16 32 64 128 256 512 1024)
 input_sizes=(16 18 20 22 24 26 28) 
 input_types=(0 1 2 3)
 
