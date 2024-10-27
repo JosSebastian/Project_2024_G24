@@ -9,6 +9,8 @@ using std::cout, std::endl;
 #include <random>
 using std::random_device, std::mt19937, std::uniform_int_distribution;
 #include <algorithm>
+using std::lower_bound, std::upper_bound;
+using std::min, std::max;
 using std::sort, std::is_sorted;
 using std::swap, std::shuffle, std::reverse;
 
@@ -259,22 +261,11 @@ int main(int argc, char const *argv[])
     CALI_MARK_BEGIN(comp);
     CALI_MARK_BEGIN(comp_large);
     vector<vector<int>> buckets(processes);
-    for (int index = 0; index < subsize; index++)
+    for (int value : subarray)
     {
-        int bucket = 0;
-        while (bucket < processes - 1 && subarray.at(index) >= splitters.at(bucket))
-        {
-            bucket++;
-        }
-
-        if (bucket < processes - 1)
-        {
-            buckets.at(bucket).push_back(subarray.at(index));
-        }
-        else
-        {
-            buckets.at(processes - 1).push_back(subarray.at(index));
-        }
+        int bucket = upper_bound(splitters.begin(), splitters.end(), value) - splitters.begin();
+        bucket = min(bucket, processes - 1);
+        buckets.at(bucket).push_back(value);
     }
     CALI_MARK_END(comp_large);
     CALI_MARK_END(comp);
@@ -283,37 +274,51 @@ int main(int argc, char const *argv[])
 
     CALI_MARK_BEGIN(comm);
     CALI_MARK_BEGIN(comm_large);
+    vector<int> send_counts(processes);
+    vector<int> send_displacements(processes);
+    int total_send_count = 0;
     for (int index = 0; index < processes; index++)
     {
-        if (process != index)
-        {
-            int bucket = static_cast<int>(buckets.at(index).size());
-            MPI_Send(&bucket, 1, MPI_INT, index, 0, MPI_COMM_WORLD);
-            MPI_Send(buckets.at(index).data(), bucket, MPI_INT, index, 0, MPI_COMM_WORLD);
-        }
+        send_counts[index] = buckets.at(index).size();
+        total_send_count += send_counts[index];
+        send_displacements[index] = (index == 0) ? 0 : send_displacements[index - 1] + send_counts[index - 1];
     }
-
+    vector<int> send_buffer(total_send_count);
     for (int index = 0; index < processes; index++)
     {
-        if (process != index)
-        {
-            int bucket;
-            MPI_Recv(&bucket, 1, MPI_INT, index, 0, MPI_COMM_WORLD, &status);
-
-            vector<int> temporary(bucket);
-            MPI_Recv(temporary.data(), bucket, MPI_INT, index, 0, MPI_COMM_WORLD, &status);
-
-            CALI_MARK_BEGIN(comp);
-            CALI_MARK_BEGIN(comp_large);
-            vector<int> result(subarray.size() + temporary.size());
-            merge(subarray.begin(), subarray.end(), temporary.begin(), temporary.end(), result.begin());
-            subarray = result;
-            CALI_MARK_END(comp_large);
-            CALI_MARK_END(comp);
-        }
+        copy(buckets.at(index).begin(), buckets.at(index).end(), send_buffer.begin() + send_displacements[index]);
+    }
+    vector<int> recv_counts(processes);
+    MPI_Alltoall(send_counts.data(), 1, MPI_INT, recv_counts.data(), 1, MPI_INT, MPI_COMM_WORLD);
+    int total_recv_count = accumulate(recv_counts.begin(), recv_counts.end(), 0);
+    vector<int> recv_buffer(total_recv_count);
+    vector<int> recv_displacements(processes);
+    for (int index = 0; index < processes; index++)
+    {
+        recv_displacements[index] = (index == 0) ? 0 : recv_displacements[index - 1] + recv_counts[index - 1];
+    }
+    MPI_Alltoallv(send_buffer.data(), send_counts.data(), send_displacements.data(), MPI_INT, recv_buffer.data(), recv_counts.data(), recv_displacements.data(), MPI_INT, MPI_COMM_WORLD);
+    vector<vector<int>> temporaries(processes);
+    for (int index = 0; index < processes; index++)
+    {
+        temporaries[index].assign(recv_buffer.begin() + recv_displacements[index], recv_buffer.begin() + recv_displacements[index] + recv_counts[index]);
     }
     CALI_MARK_END(comm_large);
     CALI_MARK_END(comm);
+
+    CALI_MARK_BEGIN(comp);
+    CALI_MARK_BEGIN(comp_large);
+    for (const auto &temporary : temporaries)
+    {
+        if (!temporary.empty())
+        {
+            vector<int> result(subarray.size() + temporary.size());
+            merge(subarray.begin(), subarray.end(), temporary.begin(), temporary.end(), result.begin());
+            subarray = result;
+        }
+    }
+    CALI_MARK_END(comp_large);
+    CALI_MARK_END(comp);
 
     double total_time_stop = MPI_Wtime();
 
