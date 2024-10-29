@@ -70,17 +70,19 @@ int main(int argc, char* argv[]) {
     std::vector<int> array;
     if (taskid == MASTER) {
         array.resize(n);
-        CALI_MARK_BEGIN("computation_data_init");
+        CALI_MARK_BEGIN("data_init_runtime");
         data_init(taskid, numtasks, n, array, sort_type);
-        CALI_MARK_END("computation_data_init");
+        CALI_MARK_END("data_init_runtime");
     }
 
     std::vector<int> local_array(n_each);
 
     // distribute data to workers
-    CALI_MARK_BEGIN("communication_data_distribution");
+    CALI_MARK_BEGIN("comm");
+    CALI_MARK_BEGIN("comm_large");
     MPI_Scatter(array.data(), n_each, MPI_INT, local_array.data(), n_each, MPI_INT, MASTER, MPI_COMM_WORLD);
-    CALI_MARK_END("communication_data_distribution");
+    CALI_MARK_END("comm_large");
+    CALI_MARK_END("comm");
 
     // local radix sort
     int max_val = *std::max_element(local_array.begin(), local_array.end());
@@ -90,28 +92,34 @@ int main(int argc, char* argv[]) {
         max_val /= 10;
     }
 
-    CALI_MARK_BEGIN("computation_local_sort");
+    CALI_MARK_BEGIN("comp");
+    CALI_MARK_BEGIN("comp_large");
     radix_sort(local_array, max_digit);
-    CALI_MARK_END("computation_local_sort");
+    CALI_MARK_END("comp_large");
+    CALI_MARK_END("comp");
 
-    // gather sorted data at the master process
+    // get sorted data at master proc
     std::vector<int> sorted_array;
     if (taskid == MASTER) {
         sorted_array.resize(n);
     }
 
-    CALI_MARK_BEGIN("communication_data_gathering");
+    CALI_MARK_BEGIN("comm");
+    CALI_MARK_BEGIN("comm_large");
     MPI_Gather(local_array.data(), n_each, MPI_INT, sorted_array.data(), n_each, MPI_INT, MASTER, MPI_COMM_WORLD);
-    CALI_MARK_END("communication_data_gathering");
+    CALI_MARK_END("comm_large");
+    CALI_MARK_END("comm");
 
-    // master merges sorted data
+    // master merges sorted data and checks correctness
     if (taskid == MASTER) {
-        CALI_MARK_BEGIN("computation_final_merge");
+        CALI_MARK_BEGIN("comp");
+        CALI_MARK_BEGIN("comp_large");
         std::inplace_merge(sorted_array.begin(), sorted_array.begin() + n_each, sorted_array.end());
-        CALI_MARK_END("computation_final_merge");
+        CALI_MARK_END("comp_large");
+        CALI_MARK_END("comp");
 
-        // correctness 
-        CALI_MARK_BEGIN("computation_correctness_check");
+        // correctness check
+        CALI_MARK_BEGIN("correctness_check");
         for (size_t i = 1; i < sorted_array.size(); ++i) {
             if (sorted_array[i - 1] > sorted_array[i]) {
                 std::cout << "Global data is not sorted!" << std::endl;
@@ -119,7 +127,7 @@ int main(int argc, char* argv[]) {
                 return 1;
             }
         }
-        CALI_MARK_END("computation_correctness_check");
+        CALI_MARK_END("correctness_check");
     }
 
     MPI_Finalize();
@@ -200,17 +208,21 @@ void data_init(const int taskid, const int numtasks, const int n_each, std::vect
         if (partner_task != taskid) {
             std::vector<int> recv_data(perturb_count);
 
-            CALI_MARK_BEGIN("communication_sendrecv");
+            CALI_MARK_BEGIN("comm");
+            CALI_MARK_BEGIN("comm_small");
             MPI_Sendrecv(&data[0], perturb_count, MPI_INT, partner_task, 0,
                          &recv_data[0], perturb_count, MPI_INT, partner_task, 0,
                          MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            CALI_MARK_END("communication_sendrecv");
+            CALI_MARK_END("comm_small");
+            CALI_MARK_END("comm");
 
-            CALI_MARK_BEGIN("computation_update_data");
+            CALI_MARK_BEGIN("comp");
+            CALI_MARK_BEGIN("comp_small");
             for (int i = 0; i < perturb_count; ++i) {
                 data[i] = recv_data[i];
             }
-            CALI_MARK_END("computation_update_data");
+            CALI_MARK_END("comp_small");
+            CALI_MARK_END("comp");
         }
     }
 }
