@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
 
     int n_each = n / numtasks;
 
-    adiak::init(nullptr);
+    adiak::init(NULL);
     adiak::launchdate();
     adiak::libraries();
     adiak::cmdline();
@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
     adiak::value("data_type", "int");
     adiak::value("size_of_data_type", sizeof(int));
     adiak::value("input_size", n);
-    adiak::value("input_type", sort_type_str);
+    adiak::value("input_type", std::string(sort_type_str)); 
     adiak::value("num_procs", numtasks);
     adiak::value("scalability", "strong");
     adiak::value("group_num", 24);
