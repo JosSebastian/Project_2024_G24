@@ -25,5 +25,5 @@ module load CMake/3.12.1
 module load GCCcore/8.3.0
 module load PAPI/6.0.0
 
-CALI_CONFIG="spot(output=p2-a${array_size}.cali,time.variance,profile.mpi)" \
+CALI_CONFIG="spot(output=p256-a${array_size}-d${data_pattern}.cali,time.variance,profile.mpi)" \
 mpirun -np 256 ./radix_sort $array_size $data_pattern

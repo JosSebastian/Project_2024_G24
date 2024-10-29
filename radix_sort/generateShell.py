@@ -7,7 +7,7 @@ input_sizes = [2**i for i in range(16, 29, 2)]
 num_cores = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
 
 with open('output.txt', 'a') as f:
-    for sort_type in sort_types:
-        for input_size in input_sizes:
+    for input_size in input_sizes: 
+        for sort_type in sort_types:
             for core in num_cores:
                 f.write(f'sbatch {core}.grace_job {input_size} {sort_type}\n')
