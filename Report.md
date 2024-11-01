@@ -425,19 +425,20 @@ CALI_MARK_END("comp");
 
 ### Radix Sort Calltree
 ```
-1.960 main
-├─ 0.000 MPI_Init
-├─ 0.214 data_distribution
-│  └─ 0.214 MPI_Scatter
-├─ 0.058 local_sort
-├─ 0.028 data_gathering
-│  └─ 0.028 MPI_Gather
-├─ 0.005 final_merge
+18.637 main
+├─ 0.249 MPI_Comm_dup
 ├─ 0.000 MPI_Finalize
-├─ 0.125 correctness_check
-├─ 0.000 MPI_Initialized
 ├─ 0.000 MPI_Finalized
-└─ 0.168 MPI_Comm_dup
+├─ 0.000 MPI_Init
+├─ 0.000 MPI_Initialized
+├─ 0.183 comm
+│  └─ 0.183 comm_large
+│     ├─ 0.021 MPI_Gather
+│     └─ 0.161 MPI_Scatter
+├─ 0.276 comp
+│  └─ 0.275 comp_large
+├─ 0.003 correctness_check
+└─ 0.001 data_init_runtime
 ```
 
 ### 3b. Collect Metadata
@@ -524,14 +525,6 @@ They will show up in the `Thicket.metadata` if the caliper file is read into Thi
 ## 4. Performance evaluation
 
 # Radix Sort
-
-Sporadic results were observed across all experiments with radix_sort. Illustrating this phenomenon below are the total execution times for radix sort with each type of input data (Sorted input, randomized input, reverse sorted input, and 1 percent perturbed):
-![image](radix_sort/plots/radixSortedTotalTime.png)
-![image](radix_sort/plots/RadixSortedTotalTimeRandomized.png)
-![image](radix_sort/plots/radixSortTotalTimeReverseSorted.png)
-![image](radix_sort/plots/radixSortTotalTime1p_perturbed.png)
-
-What can be concluded from these observations is that in the case of radix sort, communication overhead and uneven distribution of work among processes due to the nature of sorting by each digit are the primary time sinks in execution time. The best performance was typically observed among inputs sorted among 2^4 processors. There are diminishing returns for saved exection time after increasing the processors beyond this, as communication overhead between the processes becomes more time consuming.
 
 
 ### Sample Sort
