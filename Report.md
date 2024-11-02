@@ -525,7 +525,54 @@ They will show up in the `Thicket.metadata` if the caliper file is read into Thi
 ## 4. Performance evaluation
 
 # Radix Sort
+Here are the total time plots for the Radix Sort implementation:
+### Radix Sort: Total Time
 
+<table>
+  <tr>
+    <td><img src="./radix_sort/plots/Radix_Sort_Normalized_Total_Time_Sorted.png" alt="Total Time Sorted" width="300"/></td>
+    <td><img src="./radix_sort/plots/Radix_Sort_Normalized_Total_Time_Reverse_Sorted.png" alt="Total Time Reverse Sorted" width="300"/></td>
+  </tr>
+  <tr>
+    <td><img src="./radix_sort/plots/Radix_Sort_Normalized_Total_Time_1__Perturbed.png" alt="Total Time 1% Perturbed" width="300"/></td>
+    <td><img src="./radix_sort/plots/Radix_Sort_Normalized_Total_Time_Randomized.png" alt="Total Time Randomized" width="300"/></td>
+  </tr>
+</table>
+
+As expected, the general trend that is followed is that as the number of processors increases, the total time for execution decreases. The way the input data is sorted seems to have a negligible impact on execution time. A discrepancy is noted in the 1% perturbed execution at 2^9 processors; however, it is most likely an outlier. Another thing worthy of note is that numbers of processors beyond 2^6 yield negligible (and sometimes slightly longer) total times.
+
+Investigating the communication overhead plots for each input type could give more insight into the observed trends;
+### Radix Sort: Communication Time
+
+<table>
+  <tr>
+    <td><img src="./radix_sort/plots/Max_Comm_Time_Sorted.png" alt="Comm Time Sorted" width="300"/></td>
+    <td><img src="./radix_sort/plots/Max_Comm_Time_Reverse_Sorted.png" alt="Comm Time Reverse Sorted" width="300"/></td>
+  </tr>
+  <tr>
+    <td><img src="./radix_sort/plots/max_comm_1_perc_perturbed.png" alt="Comm Time 1% Perturbed" width="300"/></td>
+    <td><img src="./radix_sort/plots/Max_Comm_Time_Randomized.png" alt="Comm Time Randomized" width="300"/></td>
+  </tr>
+</table>
+It is apparent that, starting at approximately 2^6 processors, there is additional communication overhead introduced that adds extra runtime. Adding any more processes beyond 32 makes the program spend more time communicating between processes. 
+
+Taking a look at the computation time graphs could help give further insight into what is happenning to cause such diminishing returns when the number of processes is increased beyond 32.
+
+
+### Radix Sort: Computation Time
+
+<table>
+  <tr>
+    <td><img src="./radix_sort/plots/Max_Comp_Time_Rank_Sorted.png" alt="Comp Time Sorted" width="300"/></td>
+    <td><img src="./radix_sort/plots/Max_Comp_Time_Rank_Reverse_Sorted.png" alt="Comp Time Reverse Sorted" width="300"/></td>
+  </tr>
+  <tr>
+    <td><img src="./radix_sort/plots/max_comp_1_perc_perturbed.png" alt="Comp Time 1% Perturbed" width="300"/></td>
+    <td><img src="./radix_sort/plots/Max_Comp_Time_Rank_Randomized.png" alt="Comp Time Randomized" width="300"/></td>
+  </tr>
+</table>
+
+The computation time is not decreased by any significant margin past the point of 32 processors. This is likely due to the fact that Radix Sort sorts by digits; past 32 processes the ratio of digits in the input size to the amount of work assigned to each process is decreased dramatically, meaning there is little use that can be made by further dividing the sorting task between processes. At this point, adding processes serves to only increase communication overhead, and overall cause negligible decreases or even increases in total program execution time.
 
 ### Sample Sort
 
